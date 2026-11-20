@@ -457,7 +457,7 @@ $('connBtn').onclick = async () => {
 };
 $('exportBtn').onclick = () => {
   const blob = new Blob([JSON.stringify({ app: 'trailwalk', version: 1, hikes }, null, 1)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'trail-walk-hikes.json'; a.click();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cheryles-hikes-backup.json'; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 };
 $('importFile').onchange = async e => {
