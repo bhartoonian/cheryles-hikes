@@ -380,6 +380,8 @@ function render(actualMph, t) {
   $('sDist').textContent = (W.belt * M_TO_MI).toFixed(2);
   $('sTrail').textContent = `${Math.round(100 * W.pos.d / route.length)}% · ${Math.round(W.climbed * M_TO_FT)} ft up`;
   $('ahead').textContent = lookAhead();
+  $('hSpeed').textContent = $('sSpeed').textContent; $('hInc').textContent = $('sInc').textContent;
+  $('hTime').textContent = $('sTime').textContent; $('hAhead').textContent = $('ahead').textContent;
   drawMap($('mapCanvas'), route, W.pos, 8); drawElev($('elevCanvas'), route, W.pos);
 }
 function lookAhead() {
@@ -397,16 +399,16 @@ async function togglePause() {
   if (!W) return;
   if (W.state === 'running') {
     W.state = 'pausing'; await tm.pause(); vidPause();
-    $('pauseBtn').textContent = 'RESUME'; $('pauseBtn').classList.add('resume');
+    setPauseLabel(true);
   } else if (W.state === 'paused' || W.state === 'pausing') {
     W.state = 'countdown'; await countdown();
     W.cmdSpeed = W.sentSpeed = 1.0; await tm.setSpeed(1.0 * MPH_TO_KMH); await tm.start(); // restart gently
     W.state = 'running'; W.last = performance.now();
-    $('pauseBtn').textContent = 'PAUSE'; $('pauseBtn').classList.remove('resume');
+    setPauseLabel(false);
   }
 }
 async function finish() {
-  clearInterval(timer); await tm.stop();
+  clearInterval(timer); await tm.stop(); setTV(false);
   const t = player.getCurrentTime() || 0; vidPause();
   W.state = 'done'; saveResume(t);
   const whole = H.resumeAt == null;
@@ -415,9 +417,22 @@ async function finish() {
   $('doneOv').classList.add('show');
   try { await wakeLock?.release(); } catch { /* already released */ }
 }
+function setPauseLabel(paused) {
+  for (const id of ['pauseBtn', 'hPause']) { $(id).textContent = paused ? 'RESUME' : 'PAUSE'; $(id).classList.toggle('resume', paused); }
+}
+// Full screen: the video covers the whole screen; iPad/Mac browsers also hide their own bars
+function setTV(on) {
+  $('walk').classList.toggle('tv', on); document.documentElement.classList.toggle('tvmode', on);
+  if (on) document.documentElement.requestFullscreen?.().catch(() => {});
+  else if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+}
+$('fsBtn').onclick = () => setTV(true);
+$('hExit').onclick = () => setTV(false);
+$('hPause').onclick = () => togglePause();
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) { $('walk').classList.remove('tv'); document.documentElement.classList.remove('tvmode'); } });
 function leaveWalk() {
-  clearInterval(timer); W = null; player?.destroy?.(); player = null;
-  $('pauseBtn').textContent = 'PAUSE'; $('pauseBtn').classList.remove('resume');
+  clearInterval(timer); W = null; player?.destroy?.(); player = null; setTV(false);
+  setPauseLabel(false);
   show('home'); renderHome();
 }
 $('pauseBtn').onclick = togglePause;
@@ -427,6 +442,7 @@ $('endBtn').onclick = () => { if (W && W.state !== 'done') finish(); else leaveW
 $('walkBack').onclick = () => { if (W && W.state !== 'done') finish(); else leaveWalk(); };
 $('doneBtn').onclick = () => { $('doneOv').classList.remove('show'); leaveWalk(); };
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('walk').classList.contains('tv')) return setTV(false);
   if (!W || e.target.tagName === 'INPUT') return;
   if (e.code === 'Space') { e.preventDefault(); togglePause(); }
   if (e.key === 'ArrowUp') $('fasterBtn').click();

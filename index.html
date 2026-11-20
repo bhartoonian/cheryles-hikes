@@ -94,9 +94,12 @@
     <div class="topbar">
       <button class="back" id="walkBack" aria-label="Back to hikes">‹</button>
       <div class="title" id="walkTitle">Hike</div>
+      <button class="fsbtn" id="fsBtn" aria-label="Full screen"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Full screen</button>
       <div class="pill"><span class="dot ok"></span><span id="walkConn">Practice</span></div>
     </div>
     <div class="video"><div id="ytWalk"></div>
+      <div class="hud" id="hud"><span id="hSpeed">0.0</span> mph · <span id="hInc">0</span>% tilt · <span id="hTime">0:00</span> left<div class="hudahead" id="hAhead"></div></div>
+      <div class="hudbtns"><button id="hPause">PAUSE</button><button id="hExit">Exit full screen</button></div>
       <div class="startcover" id="startCover"><button class="big" id="goBtn">Start walking</button><p id="goSub"></p></div>
     </div>
     <div class="side">
