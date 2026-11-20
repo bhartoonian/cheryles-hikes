@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1720">
+<title>Trail Walk</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============ LIBRARY ============ -->
+<section id="home" class="screen active">
+  <h1>Trail Walk</h1>
+  <p class="sub">Pick a hike. The treadmill follows the trail's hills while the video plays.</p>
+
+  <h2>My hikes</h2>
+  <div class="hikes" id="hikeList"></div>
+  <button class="big alt" id="addBtn">+ Add a hike from YouTube</button>
+
+  <h2>Walk for</h2>
+  <div class="chips" id="durList"></div>
+
+  <h2>Treadmill</h2>
+  <div class="conn">
+    <div class="dot ok"></div>
+    <div class="grow"><b id="connName">Practice treadmill</b><small id="connSub"></small></div>
+    <button class="btn" id="connBtn">Connect</button>
+  </div>
+
+  <h2>My limits</h2>
+  <div class="settings">
+    <label>Walking pace <input type="range" id="setPace" min="1" max="4" step="0.1"><output id="outPace"></output></label>
+    <label>Top speed <input type="range" id="setMax" min="1.5" max="4" step="0.1"><output id="outMax"></output></label>
+    <label>Steepest hill <input type="range" id="setInc" min="0" max="12" step="1"><output id="outInc"></output></label>
+  </div>
+
+  <div class="links">
+    <button id="helpBtn">How it works</button>
+    <button id="exportBtn">Save a backup of my hikes</button>
+    <label>Load a backup<input type="file" id="importFile" accept=".json,application/json" hidden></label>
+  </div>
+</section>
+
+<!-- ============ ADD A HIKE ============ -->
+<section id="add" class="screen">
+  <div class="topnav"><button class="back" id="addBack">‹ Back</button><b id="addTitle">Add a hike</b><span></span></div>
+
+  <h2>1 · The YouTube video</h2>
+  <div class="card">
+    <input id="ytUrl" type="url" placeholder="Paste the YouTube link here" autocomplete="off">
+    <div id="ytBox" class="ytbox" hidden><div id="ytPreview"></div></div>
+    <input id="hikeTitle" type="text" placeholder="Name for this hike" hidden>
+  </div>
+
+  <h2>2 · Find the trail on the map</h2>
+  <div class="card">
+    <input id="trailName" type="text" placeholder="Trail name, e.g. Angels Landing">
+    <input id="trailNear" type="text" placeholder="Near, e.g. Zion National Park">
+    <div class="row"><button class="btn primary" id="findBtn">Find trail</button>
+      <label class="btn">Use a GPX file<input type="file" id="gpxFile" accept=".gpx,application/gpx+xml" hidden></label></div>
+    <p class="hint" id="findMsg"></p>
+    <div id="results"></div>
+  </div>
+
+  <div id="trailStep" hidden>
+    <h2>3 · The trail</h2>
+    <div class="card">
+      <div class="preview"><canvas id="pMap"></canvas></div>
+      <div class="pelev"><canvas id="pElev"></canvas></div>
+      <p id="trailInfo"></p>
+      <button class="btn" id="flipBtn">⇄ Walk it the other way</button>
+      <p class="hint">Check the direction: if the video starts at the trailhead and climbs, the profile should start low on the left.</p>
+    </div>
+
+    <h2>4 · Line up the video with the trail</h2>
+    <div class="card">
+      <p class="hint">Play the video above. Skip any intro, then tap the first button when the hike actually starts. Tap the second where it ends (summit, viewpoint, or the end of the video).</p>
+      <div class="sync"><span>Trail starts at</span><input id="tStart" inputmode="numeric" value="0:00"><button class="btn" id="setStart">Use video time</button></div>
+      <div class="sync"><span>Trail ends at</span><input id="tEnd" inputmode="numeric" value="0:00"><button class="btn" id="setEnd">Use video time</button></div>
+      <div class="sync"><span>Video stops at</span><input id="endPct" type="range" min="10" max="100" value="100"><output id="endPctOut">end of trail</output></div>
+      <p class="hint">Use the slider if the video stops partway along the trail (for example at a viewpoint before the end).</p>
+      <p class="hint" id="paceMsg"></p>
+    </div>
+    <button class="big" id="saveBtn">Save this hike</button>
+  </div>
+</section>
+
+<!-- ============ WALK ============ -->
+<section id="walk" class="screen">
+  <div class="walkgrid">
+    <div class="topbar">
+      <button class="back" id="walkBack" aria-label="Back to hikes">‹</button>
+      <div class="title" id="walkTitle">Hike</div>
+      <div class="pill"><span class="dot ok"></span><span id="walkConn">Practice</span></div>
+    </div>
+    <div class="video"><div id="ytWalk"></div>
+      <div class="startcover" id="startCover"><button class="big" id="goBtn">Start walking</button><p id="goSub"></p></div>
+    </div>
+    <div class="side">
+      <div class="trailrow">
+        <div class="minimap"><canvas id="mapCanvas"></canvas></div>
+        <div class="elev"><canvas id="elevCanvas"></canvas><div class="ahead" id="ahead"></div></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="v" id="sSpeed">0.0</div><div class="l">mph</div><div class="t" id="sSpeedT">&nbsp;</div></div>
+        <div class="stat"><div class="v" id="sInc">0</div><div class="l">incline %</div><div class="t" id="sIncT">&nbsp;</div></div>
+        <div class="stat"><div class="v" id="sTime">0:00</div><div class="l">left</div><div class="t" id="sPhase">&nbsp;</div></div>
+        <div class="stat"><div class="v" id="sDist">0.00</div><div class="l">miles</div><div class="t" id="sTrail">&nbsp;</div></div>
+      </div>
+      <div class="controls">
+        <button id="slowerBtn">− slower</button>
+        <button id="pauseBtn">PAUSE</button>
+        <button id="fasterBtn">+ faster</button>
+      </div>
+      <div class="endrow"><button id="endBtn">End walk</button></div>
+    </div>
+  </div>
+</section>
+
+<div class="overlay" id="countOv"><div class="count" id="countNum">3</div><p>Stand on the side rails. Step on when the belt starts moving.</p></div>
+<div class="overlay" id="doneOv"><div class="sheet"><h3>Nice walk!</h3><p id="doneTxt"></p><button class="big" id="doneBtn">Done</button></div></div>
+<div class="overlay" id="askOv"><div class="sheet"><h3 id="askTitle"></h3><p id="askTxt"></p>
+  <div class="row"><button class="btn" id="askNo">Cancel</button><button class="btn danger" id="askYes">Delete</button></div></div></div>
+<div class="overlay" id="helpOv"><div class="sheet">
+  <h3>How it works</h3>
+  <ol>
+    <li>Pick a hike and how long you want to walk, then tap <b>Start walking</b>.</li>
+    <li>The video starts, and after a 3‑2‑1 countdown the belt starts slowly. The first 30 seconds are a warm‑up.</li>
+    <li>When the hiker in the video climbs, the treadmill tilts up. On steep parts it slows a little, and the video speeds up or slows down to match your steps.</li>
+    <li><b>PAUSE</b> (the big red button, or the space bar) stops the belt and the video. Tap it again to carry on.</li>
+    <li>When your time is up you get a 30‑second cool‑down, then the belt stops. Next time the hike picks up where you left off.</li>
+    <li>The treadmill's own remote and stop button always work too.</li>
+  </ol>
+  <h3>Adding a hike</h3>
+  <ol>
+    <li>On YouTube, find a walking video filmed on a named trail with a steady view and no talking (for example "Angels Landing POV hike"). Copy its link.</li>
+    <li>Tap <b>+ Add a hike</b>, paste the link, then type the trail's name and the park or town it's in, and tap <b>Find trail</b>.</li>
+    <li>Pick the right trail, line up where the hike starts and ends in the video, and save.</li>
+  </ol>
+  <p class="hint">Hikes are saved on this phone. Tap "Save a backup of my hikes" now and then so they're never lost.</p>
+  <button class="big" id="helpClose">Got it</button>
+</div></div>
+<div class="banner" id="banner"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
