@@ -44,7 +44,12 @@ async function loadStarters() { // hikes bundled with the app (library.json), ad
     const starters = await (await fetch('library.json', { cache: 'no-store' })).json();
     const seen = new Set(store.get('trailwalk.seenStarters', []));
     let added = 0;
-    for (const h of starters) if (!seen.has(h.id)) { seen.add(h.id); if (!hikes.some(x => x.id === h.id)) { hikes.push(h); added++; } }
+    for (const h of starters) {
+      const mine = hikes.find(x => x.id === h.id);
+      if (!seen.has(h.id)) { seen.add(h.id); if (!mine) { hikes.push(h); added++; } }
+      // refresh a built-in hike she hasn't edited (e.g. better hill data), keeping her place in it
+      else if (mine && !mine.edited && JSON.stringify(mine.coords) !== JSON.stringify(h.coords)) { Object.assign(mine, h, { resumeAt: mine.resumeAt }); added++; }
+    }
     store.set('trailwalk.seenStarters', [...seen]);
     if (added) { saveHikes(); renderHome(); }
   } catch { /* no starter file: fine */ }
@@ -221,7 +226,9 @@ $('gpxFile').onchange = async e => {
 };
 async function useTrail(coords, hasEle = false) {
   try {
-    if (!hasEle) coords = await addElevation(coords, p => { $('findMsg').textContent = `Reading the hills along the trail… ${Math.round(p * 100)}%`; });
+    if (!hasEle) coords = await addElevation(coords, (p, waiting) => { $('findMsg').textContent = waiting
+      ? `Long trail! The free map service needs a short break. Waiting a minute… (${Math.round(p * 100)}% done)`
+      : `Reading the hills along the trail… ${Math.round(p * 100)}%`; });
     draft.coords = coords.map(c => [+c[0].toFixed(5), +c[1].toFixed(5), Math.round(c[2] * 10) / 10]);
     $('findMsg').textContent = 'Got it. Check the trail below.';
     $('trailStep').hidden = false; showTrail();
@@ -258,7 +265,7 @@ $('saveBtn').onclick = () => {
   if (!(end > start)) return showBanner('The trail has to end later in the video than it starts.');
   const h = { id: draft.id || 'h' + Date.now(), title: $('hikeTitle').value.trim() || draft.trailName, youtubeId: draft.youtubeId,
     start, end, endFrac: draft.endFrac ?? 1, trailName: draft.trailName, near: draft.near, coords: draft.coords,
-    lengthM: draft.lengthM, climbM: draft.climbM, maxGrade: draft.maxGrade, resumeAt: null, added: draft.added || new Date().toISOString() };
+    lengthM: draft.lengthM, climbM: draft.climbM, maxGrade: draft.maxGrade, resumeAt: null, added: draft.added || new Date().toISOString(), edited: !!draft.id };
   const i = hikes.findIndex(x => x.id === h.id); if (i >= 0) hikes[i] = h; else hikes.unshift(h);
   saveHikes(); prevPlayer?.destroy?.(); prevPlayer = null; show('home'); renderHome(); showBanner(`Saved "${h.title}".`, 3000);
 };

@@ -121,7 +121,15 @@ export async function addElevation(coords, onProgress) {
     const chunk = coords.slice(i, i + 100);
     const url = 'https://api.open-meteo.com/v1/elevation?latitude=' + chunk.map(c => c[0].toFixed(5)).join(',') +
       '&longitude=' + chunk.map(c => c[1].toFixed(5)).join(',');
-    const r = await fetch(url);
+    // The free service allows a limited number of points per minute; long trails go over it,
+    // so on "too many requests" wait a minute and carry on (up to 5 times).
+    let r;
+    for (let tries = 0; ; tries++) {
+      r = await fetch(url);
+      if (r.status !== 429 || tries >= 5) break;
+      onProgress?.(out.length / coords.length, true);
+      await new Promise(res => setTimeout(res, 61000));
+    }
     if (!r.ok) throw new Error("Couldn't get the hill heights right now. Try again in a minute.");
     const j = await r.json();
     chunk.forEach((c, k) => out.push([c[0], c[1], j.elevation[k]]));
